@@ -100,8 +100,8 @@
         cursor: pointer;
       }
       #reader {
-        flex: 1;
         width: 100%;
+        height: 100%;
       }
       #reader video {
         object-fit: cover !important;
@@ -397,15 +397,10 @@
           else if (state === 'green') label.textContent = 'Scanned!';
         }
       }
-      let resetTimer = null;
       function onScanSuccess(text) {
         const now = Date.now();
         setRectState('blue');
-        if (text === lastScan && now - lastScanTime < DEBOUNCE_MS) {
-          if (resetTimer) clearTimeout(resetTimer);
-          resetTimer = setTimeout(() => setRectState('red'), 500);
-          return;
-        }
+        if (text === lastScan && now - lastScanTime < DEBOUNCE_MS) return;
         lastScan = text;
         lastScanTime = now;
         setRectState('green');

@@ -100,11 +100,31 @@
         cursor: pointer;
       }
       #reader {
-        flex: 1;
-        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
       }
       #reader video {
         object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      #reader img {
+        display: none !important;
+      }
+      #reader > div {
+        border: none !important;
+      }
+      #reader qr-shaded-region {
+        display: none !important;
+      }
+      #reader .qr-shaded-region {
+        display: none !important;
+      }
+      #reader .shaded-region {
+        display: none !important;
       }
       #scanOverlay {
         position: absolute;
@@ -321,8 +341,8 @@
           fps: 30,
           qrbox: function (viewfinderWidth, viewfinderHeight) {
             return {
-              width: Math.floor(viewfinderWidth * 0.8),
-              height: Math.floor(viewfinderHeight * 0.25),
+              width: Math.floor(viewfinderWidth * 0.9),
+              height: Math.floor(viewfinderHeight * 0.4),
             };
           },
           formatsToSupport: [
@@ -344,68 +364,28 @@
           .start(
             { facingMode: "environment" },
             cfg,
-            onScanSuccess
+            onScanSuccess,
+            onScanError
           )
-          .then(() => {
-            applyFullscreenStyle();
-          })
           .catch((e) => {
             alert("Camera start failed: " + e);
           });
       }
-      function applyFullscreenStyle() {
-        const reader = document.getElementById('reader');
-        if (!reader) return;
-        reader.style.position = 'absolute';
-        reader.style.top = '0';
-        reader.style.left = '0';
-        reader.style.width = '100%';
-        reader.style.height = '100%';
-        const innerDiv = reader.querySelector('div');
-        if (innerDiv) {
-          innerDiv.style.width = '100%';
-          innerDiv.style.height = '100%';
-          innerDiv.style.border = 'none';
-        }
-        const shadedRegion = reader.querySelector('.qr-shaded-region');
-        if (shadedRegion) {
-          shadedRegion.style.background = 'none';
-        }
-        const dashboard = document.getElementById('reader__dashboard');
-        if (dashboard) dashboard.style.display = 'none';
-        const headerMsg = document.getElementById('reader__header_message');
-        if (headerMsg) headerMsg.style.display = 'none';
-        const scanRegion = document.getElementById('reader__scan_region');
-        if (scanRegion) {
-          scanRegion.style.border = 'none';
-          scanRegion.querySelectorAll('br, span, img, a, select').forEach(el => el.style.display = 'none');
-        }
-        reader.querySelectorAll('img').forEach(el => el.style.display = 'none');
-        reader.querySelectorAll('a').forEach(el => el.style.display = 'none');
-      }
       let rectState = 'red';
       function setRectState(state) {
         const el = document.getElementById('scanRect');
-        const label = document.getElementById('scanLabel');
         if (!el) return;
         el.classList.remove('state-red', 'state-blue', 'state-green');
         el.classList.add('state-' + state);
         rectState = state;
-        if (label) {
-          if (state === 'red') label.textContent = 'Align barcode within frame';
-          else if (state === 'blue') label.textContent = 'Barcode detected...';
-          else if (state === 'green') label.textContent = 'Scanned!';
-        }
       }
-      let resetTimer = null;
+      function onScanError() {
+        if (rectState !== 'red') setRectState('red');
+      }
       function onScanSuccess(text) {
         const now = Date.now();
         setRectState('blue');
-        if (text === lastScan && now - lastScanTime < DEBOUNCE_MS) {
-          if (resetTimer) clearTimeout(resetTimer);
-          resetTimer = setTimeout(() => setRectState('red'), 500);
-          return;
-        }
+        if (text === lastScan && now - lastScanTime < DEBOUNCE_MS) return;
         lastScan = text;
         lastScanTime = now;
         setRectState('green');
