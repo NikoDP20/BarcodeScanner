@@ -274,7 +274,6 @@
       <button class="mode-btn" onclick="startMode('serialOnly')">
         Only Serial Number
       </button>
-      <div id="versionCounter">v1.0</div>
     </div>
     <div id="scannerScreen" class="screen">
       <div id="scannerTopBar">
@@ -329,20 +328,28 @@
           fps: 30,
           qrbox: function (viewfinderWidth, viewfinderHeight) {
             return {
-              width: Math.floor(viewfinderWidth * 0.9),
-              height: Math.floor(viewfinderHeight * 0.35),
+              width: Math.floor(viewfinderWidth * 0.8),
+              height: Math.floor(viewfinderHeight * 0.25),
             };
           },
-          disableFlip: true,
-          useBarCodeDetectorIfSupported: true,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
           ],
         };
 
         scanner
           .start(
-            { facingMode: "environment", width: { min: 1280, ideal: 1920 }, height: { min: 720, ideal: 1080 } },
+            { facingMode: "environment" },
             cfg,
             onScanSuccess
           )
