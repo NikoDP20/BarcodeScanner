@@ -254,10 +254,35 @@
       }
       function startCamera() {
         scanner = new Html5Qrcode("reader");
-        const cfg = { fps: 10, qrbox: { width: 340, height: 160 } };
-        scanner.start({ facingMode: "environment" }, cfg, onScanSuccess).catch((e) => {
-          alert("Camera start failed: " + e);
-        });
+
+        const cfg = {
+          fps: 30,
+          qrbox: function (viewfinderWidth, viewfinderHeight) {
+            return {
+              width: Math.floor(viewfinderWidth * 0.9),
+              height: Math.floor(viewfinderHeight * 0.4),
+            };
+          },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+          ],
+        };
+
+        scanner
+          .start({ facingMode: "environment" }, cfg, onScanSuccess)
+          .catch((e) => {
+            alert("Camera start failed: " + e);
+          });
       }
       function onScanSuccess(text) {
         const now = Date.now();
