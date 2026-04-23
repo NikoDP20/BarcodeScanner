@@ -100,9 +100,6 @@
         height: 100%;
         object-fit: cover;
       }
-      #reader canvas {
-        display: none !important;
-      }
       .scanner-actions {
         display: flex;
         gap: 12px;
@@ -313,7 +310,9 @@
               type: "LiveStream",
               target,
               constraints: {
-                facingMode: { ideal: "environment" },
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
               },
             },
             locator: {
@@ -339,14 +338,6 @@
             Quagga.onDetected(handleQuaggaDetected);
             Quagga.start();
             quaggaStarted = true;
-            const video = target.querySelector("video");
-            if (video) {
-              video.setAttribute("playsinline", "true");
-              video.setAttribute("webkit-playsinline", "true");
-              video.setAttribute("autoplay", "true");
-              video.muted = true;
-              video.play().catch(() => {});
-            }
             resetScanButton(false);
           }
         );
