@@ -340,11 +340,7 @@
 
       async function getRearCameraConstraint() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          return {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          };
+          return { facingMode: "environment" };
         }
 
         try {
@@ -367,25 +363,13 @@
           });
 
           if (rear && rear.deviceId) {
-            return {
-              deviceId: { exact: rear.deviceId },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-            };
+            return { deviceId: rear.deviceId };
           }
         } catch (e) {
-          return {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          };
+          return { facingMode: "environment" };
         }
 
-        return {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        };
+        return { facingMode: "environment" };
       }
 
       function initQuagga(target, videoConstraint) {
@@ -399,19 +383,18 @@
                 constraints: videoConstraint,
               },
               locator: {
-                patchSize: "x-small",
+                patchSize: "medium",
                 halfSample: false,
               },
               numOfWorkers:
                 navigator.hardwareConcurrency
                   ? Math.min(4, navigator.hardwareConcurrency)
                   : 2,
-              frequency: 20,
+              frequency: 10,
               decoder: {
                 readers: ["code_128_reader"],
-                multiple: false,
               },
-              locate: false,
+              locate: true,
             },
             function (err) {
               if (err) {
@@ -444,16 +427,7 @@
         const preferredConstraint = await getRearCameraConstraint();
         const constraintsToTry = [
           preferredConstraint,
-          {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          { facingMode: "environment" },
           true,
         ];
 
