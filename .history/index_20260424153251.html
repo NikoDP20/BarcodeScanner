@@ -119,18 +119,6 @@
         display: none !important;
       }
 
-      #reader.scanning {
-        border: 4px solid #007aff;
-      }
-
-      #reader.success {
-        border: 4px solid #34c759;
-      }
-
-      #reader.fail {
-        border: 4px solid #ff3b30;
-      }
-
       .scanner-actions {
         display: flex;
         gap: 12px;
@@ -430,13 +418,6 @@
         btn.textContent = disabled ? "Starting..." : "Scan";
       }
 
-      function setReaderBorder(state) {
-        const reader = document.getElementById("reader");
-        if (!reader) return;
-        reader.classList.remove("scanning", "success", "fail");
-        if (state) reader.classList.add(state);
-      }
-
       async function getRearCameraConstraint() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           return {
@@ -605,15 +586,12 @@
         scanRequested = false;
         clearScanRequestTimer();
         resetScanButton(false);
-        setReaderBorder("success");
-        setTimeout(() => setReaderBorder(null), 1000);
         onScanSuccess(text);
       }
 
       function beginScanAttempt(isRetry = false) {
         if (!quaggaStarted) return;
         scanRequested = true;
-        setReaderBorder("scanning");
 
         const btn = document.getElementById("scanBtn");
         if (btn) {
@@ -624,8 +602,6 @@
         clearScanRequestTimer();
         scanRequestTimer = setTimeout(() => {
           if (!scanRequested || !quaggaStarted) return;
-          setReaderBorder("fail");
-          setTimeout(() => setReaderBorder(null), 800);
           beginScanAttempt(true);
         }, MANUAL_SCAN_TIMEOUT_MS);
       }
