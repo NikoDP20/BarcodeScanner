@@ -740,81 +740,14 @@
         return csv;
       }
 
-      async function startShareWithQR() {
+      async function shareResults() {
         const csv = buildShareCSV();
-        pendingShareBlob = new Blob([csv], { type: "text/csv" });
-        pendingShareFile = new File([pendingShareBlob], "scan_results.csv", { type: "text/csv" });
-
-        document.getElementById("qrModal").classList.add("active");
-
-        const qrReader = document.getElementById("qrReader");
-        qrReader.innerHTML = "";
-
-        if (!window.Html5Qrcode) {
-          skipQrScan();
-          return;
-        }
-
-        qrScanner = new Html5Qrcode("qrReader");
-
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-        try {
-          await qrScanner.start(
-            { facingMode: "environment" },
-            config,
-            onQrSuccess,
-            () => {}
-          );
-        } catch (e) {
-          console.error("QR start failed:", e);
-          skipQrScan();
-        }
-      }
-
-      function onQrSuccess(decodedText) {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        completeShare(decodedText);
-      }
-
-      function cancelQrScan() {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        pendingShareBlob = null;
-        pendingShareFile = null;
-      }
-
-      function skipQrScan() {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        completeShare("");
-      }
-
-      async function stopQrScanner() {
-        if (qrScanner) {
-          try {
-            await qrScanner.stop();
-          } catch (e) {}
-          qrScanner = null;
-        }
-      }
-
-      async function completeShare(messageText) {
-        if (!pendingShareFile) return;
-
-        const file = pendingShareFile;
-        const msg = messageText || undefined;
+        const blob = new Blob([csv], { type: "text/csv" });
+        const file = new File([blob], "scan_results.csv", { type: "text/csv" });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
-            await navigator.share({
-              files: [file],
-              title: "Scan Results",
-              text: msg,
-            });
-            pendingShareBlob = null;
-            pendingShareFile = null;
+            await navigator.share({ files: [file], title: "Scan Results" });
             return;
           } catch (e) {
             console.error(e);
@@ -832,13 +765,7 @@
 
         if (navigator.canShare && navigator.canShare({ files: [textFile] })) {
           try {
-            await navigator.share({
-              files: [textFile],
-              title: "Scan Results",
-              text: msg,
-            });
-            pendingShareBlob = null;
-            pendingShareFile = null;
+            await navigator.share({ files: [textFile], title: "Scan Results" });
             return;
           } catch (e) {
             console.error(e);
@@ -846,8 +773,6 @@
         }
 
         alert("Web Share not supported. Use Download CSV instead.");
-        pendingShareBlob = null;
-        pendingShareFile = null;
       }
 
       function restart() {

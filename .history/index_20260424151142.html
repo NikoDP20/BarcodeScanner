@@ -8,7 +8,6 @@
     />
     <title>Charger Scanner</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
       * {
         box-sizing: border-box;
@@ -263,61 +262,6 @@
         font-size: 13px;
         color: #8e8e93;
       }
-
-      #qrModal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.9);
-        z-index: 1000;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-
-      #qrModal.active {
-        display: flex;
-      }
-
-      #qrModal h3 {
-        color: #fff;
-        margin-bottom: 16px;
-        font-size: 18px;
-      }
-
-      #qrReader {
-        width: min(80vw, 400px);
-        aspect-ratio: 1;
-        border-radius: 16px;
-        overflow: hidden;
-        background: #000;
-      }
-
-      #qrModal .qr-actions {
-        margin-top: 16px;
-        display: flex;
-        gap: 12px;
-      }
-
-      #qrModal .qr-actions button {
-        padding: 14px 24px;
-        font-size: 16px;
-        font-weight: 600;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-      }
-
-      #cancelQrBtn {
-        background: #8e8e93;
-        color: #fff;
-      }
-
-      #skipQrBtn {
-        background: #007aff;
-        color: #fff;
-      }
     </style>
   </head>
   <body>
@@ -349,18 +293,9 @@
       <h2>Scan Results</h2>
       <div id="resultsContainer"></div>
       <div class="results-actions">
-        <button id="shareBtn" onclick="startShareWithQR()">Share as File</button>
+        <button id="shareBtn" onclick="shareResults()">Share as File</button>
         <button id="downloadBtn" onclick="downloadCSV()">Download CSV</button>
         <button id="restartBtn" onclick="restart()">Start Over</button>
-      </div>
-    </div>
-
-    <div id="qrModal">
-      <h3>Scan QR code for share message (optional)</h3>
-      <div id="qrReader"></div>
-      <div class="qr-actions">
-        <button id="cancelQrBtn" onclick="cancelQrScan()">Cancel</button>
-        <button id="skipQrBtn" onclick="skipQrScan()">Skip / No QR</button>
       </div>
     </div>
 
@@ -374,9 +309,6 @@
       let lastScanTime = 0;
       let scanRequested = false;
       let scanRequestTimer = null;
-      let qrScanner = null;
-      let pendingShareBlob = null;
-      let pendingShareFile = null;
 
       const DEBOUNCE_MS = 1500;
       const MANUAL_SCAN_TIMEOUT_MS = 2500;
@@ -740,81 +672,23 @@
         return csv;
       }
 
-      async function startShareWithQR() {
+      async function shareResults() {
         const csv = buildShareCSV();
-        pendingShareBlob = new Blob([csv], { type: "text/csv" });
-        pendingShareFile = new File([pendingShareBlob], "scan_results.csv", { type: "text/csv" });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const file = new File([blob], "scan_results.csv", { type: "text/csv" });
 
-        document.getElementById("qrModal").classList.add("active");
-
-        const qrReader = document.getElementById("qrReader");
-        qrReader.innerHTML = "";
-
-        if (!window.Html5Qrcode) {
-          skipQrScan();
-          return;
-        }
-
-        qrScanner = new Html5Qrcode("qrReader");
-
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-        try {
-          await qrScanner.start(
-            { facingMode: "environment" },
-            config,
-            onQrSuccess,
-            () => {}
-          );
-        } catch (e) {
-          console.error("QR start failed:", e);
-          skipQrScan();
-        }
-      }
-
-      function onQrSuccess(decodedText) {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        completeShare(decodedText);
-      }
-
-      function cancelQrScan() {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        pendingShareBlob = null;
-        pendingShareFile = null;
-      }
-
-      function skipQrScan() {
-        stopQrScanner();
-        document.getElementById("qrModal").classList.remove("active");
-        completeShare("");
-      }
-
-      async function stopQrScanner() {
-        if (qrScanner) {
-          try {
-            await qrScanner.stop();
-          } catch (e) {}
-          qrScanner = null;
-        }
-      }
-
-      async function completeShare(messageText) {
-        if (!pendingShareFile) return;
-
-        const file = pendingShareFile;
-        const msg = messageText || undefined;
+        const customMsg = prompt(
+          "Optional: Add a message to include with the share:",
+          ""
+        );
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
               title: "Scan Results",
-              text: msg,
+              text: customMsg || undefined,
             });
-            pendingShareBlob = null;
-            pendingShareFile = null;
             return;
           } catch (e) {
             console.error(e);
@@ -835,10 +709,8 @@
             await navigator.share({
               files: [textFile],
               title: "Scan Results",
-              text: msg,
+              text: customMsg || undefined,
             });
-            pendingShareBlob = null;
-            pendingShareFile = null;
             return;
           } catch (e) {
             console.error(e);
@@ -846,8 +718,6 @@
         }
 
         alert("Web Share not supported. Use Download CSV instead.");
-        pendingShareBlob = null;
-        pendingShareFile = null;
       }
 
       function restart() {
