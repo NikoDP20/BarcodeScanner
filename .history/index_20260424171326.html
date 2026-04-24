@@ -875,7 +875,7 @@
       async function stopQrScanner() {
         if (qrScanner) {
           try {
-            await qrScanner.reset();
+            await qrScanner.stop();
           } catch (e) {}
           qrScanner = null;
         }

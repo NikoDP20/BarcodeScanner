@@ -784,21 +784,21 @@
         const qrReader = document.getElementById("qrReader");
         qrReader.innerHTML = "";
 
-        if (!window.ZXing) {
+        if (!window.Html5Qrcode) {
           skipQrScan();
           return;
         }
 
+        qrScanner = new Html5Qrcode("qrReader");
+
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
         try {
-          qrScanner = new ZXing.BrowserQRCodeReader();
-          await qrScanner.decodeFromVideoDevice(
+          await qrScanner.start(
             { facingMode: "environment" },
-            qrReader,
-            (result, error) => {
-              if (result) {
-                onQrDetected(result.text);
-              }
-            }
+            config,
+            onQrDetected,
+            () => {}
           );
         } catch (e) {
           console.error("QR start failed:", e);
@@ -875,7 +875,7 @@
       async function stopQrScanner() {
         if (qrScanner) {
           try {
-            await qrScanner.reset();
+            await qrScanner.stop();
           } catch (e) {}
           qrScanner = null;
         }
