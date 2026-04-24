@@ -328,7 +328,11 @@
         cursor: default;
       }
 
-      #reader.scanning::after {
+      #qrReader {
+        position: relative;
+      }
+
+      #qrReader.scanning::after {
         content: "";
         position: absolute;
         inset: 0;
@@ -381,7 +385,7 @@
 
     <div id="qrModal">
       <h3>Scan QR code for share message (optional)</h3>
-      <div id="reader"></div>
+      <div id="qrReader"></div>
       <div class="qr-actions">
         <button id="cancelQrBtn" onclick="cancelQrScan()">Cancel</button>
         <button id="scanQrBtn" onclick="triggerQrScan()">Scan</button>
@@ -399,6 +403,7 @@
       let lastScanTime = 0;
       let scanRequested = false;
       let scanRequestTimer = null;
+      let qrScanner = null;
       let pendingShareBlob = null;
       let pendingShareFile = null;
       let qrScanRequested = false;
@@ -502,7 +507,7 @@
                   : 2,
               frequency: 20,
               decoder: {
-                readers: ["code_128_reader", "qr_code_reader"],
+                readers: ["code_128_reader"],
                 multiple: false,
               },
               locate: false,
@@ -592,19 +597,10 @@
       }
 
       function handleQuaggaDetected(result) {
-        if (!result || !result.codeResult) return;
-
-        const text = result.codeResult.code;
-        const format = result.codeResult.format;
-        if (!text) return;
-
-        if (qrScanRequested && format === "qr_code") {
-          onQrSuccess(text);
-          return;
-        }
-
         if (!scanRequested) return;
-        if (format !== "code_128") return;
+
+        const text = result && result.codeResult ? result.codeResult.code : "";
+        if (!text) return;
 
         scanRequested = false;
         clearScanRequestTimer();
@@ -780,36 +776,61 @@
         pendingShareBlob = new Blob([csv], { type: "text/csv" });
         pendingShareFile = new File([pendingShareBlob], "scan_results.csv", { type: "text/csv" });
 
-        qrScanRequested = false;
         document.getElementById("qrModal").classList.add("active");
-        updateQrScanButton(false);
 
-        if (!quaggaStarted) {
-          await startCamera();
+        const qrReader = document.getElementById("qrReader");
+        qrReader.innerHTML = "";
+
+        if (!window.Html5Qrcode) {
+          skipQrScan();
+          return;
+        }
+
+        qrScanner = new Html5Qrcode("qrReader");
+
+        const config = { fps: 10 };
+
+        try {
+          await qrScanner.start(
+            { facingMode: "environment" },
+            config,
+            onQrDetected,
+            () => {}
+          );
+        } catch (e) {
+          console.error("QR start failed:", e);
+          skipQrScan();
         }
       }
 
-      function onQrSuccess(decodedText) {
+      function onQrDetected(decodedText, result) {
+        console.log("QR detected:", decodedText, "requested:", qrScanRequested);
+        if (!qrScanRequested) return;
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        document.getElementById("qrReader").classList.remove("scanning");
+        onQrSuccess(decodedText);
+      }
+
+      function onQrSuccess(decodedText) {
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         completeShare(decodedText);
       }
 
       function triggerQrScan() {
-        if (!quaggaStarted) return;
+        if (!qrScanner) return;
         qrScanRequested = true;
         updateQrScanButton(true);
-        document.getElementById("reader").classList.add("scanning");
+        document.getElementById("qrReader").classList.add("scanning");
 
         clearQrScanTimer();
         qrScanTimer = setTimeout(() => {
           if (!qrScanRequested) return;
           qrScanRequested = false;
           updateQrScanButton(false);
-          document.getElementById("reader").classList.remove("scanning");
+          document.getElementById("qrReader").classList.remove("scanning");
         }, 6000);
       }
 
@@ -830,7 +851,9 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        const qrReader = document.getElementById("qrReader");
+        if (qrReader) qrReader.classList.remove("scanning");
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         pendingShareBlob = null;
         pendingShareFile = null;
@@ -840,9 +863,20 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        const qrReader = document.getElementById("qrReader");
+        if (qrReader) qrReader.classList.remove("scanning");
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
+      }
+
+      async function stopQrScanner() {
+        if (qrScanner) {
+          try {
+            await qrScanner.stop();
+          } catch (e) {}
+          qrScanner = null;
+        }
       }
 
       async function completeShare(messageText) {

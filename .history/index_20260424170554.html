@@ -328,7 +328,11 @@
         cursor: default;
       }
 
-      #reader.scanning::after {
+      #qrReader {
+        position: relative;
+      }
+
+      #qrReader.scanning::after {
         content: "";
         position: absolute;
         inset: 0;
@@ -399,6 +403,7 @@
       let lastScanTime = 0;
       let scanRequested = false;
       let scanRequestTimer = null;
+      let qrScanner = null;
       let pendingShareBlob = null;
       let pendingShareFile = null;
       let qrScanRequested = false;
@@ -780,36 +785,61 @@
         pendingShareBlob = new Blob([csv], { type: "text/csv" });
         pendingShareFile = new File([pendingShareBlob], "scan_results.csv", { type: "text/csv" });
 
-        qrScanRequested = false;
         document.getElementById("qrModal").classList.add("active");
-        updateQrScanButton(false);
 
-        if (!quaggaStarted) {
-          await startCamera();
+        const qrReader = document.getElementById("qrReader");
+        qrReader.innerHTML = "";
+
+        if (!window.Html5Qrcode) {
+          skipQrScan();
+          return;
+        }
+
+        qrScanner = new Html5Qrcode("qrReader");
+
+        const config = { fps: 10 };
+
+        try {
+          await qrScanner.start(
+            { facingMode: "environment" },
+            config,
+            onQrDetected,
+            () => {}
+          );
+        } catch (e) {
+          console.error("QR start failed:", e);
+          skipQrScan();
         }
       }
 
-      function onQrSuccess(decodedText) {
+      function onQrDetected(decodedText, result) {
+        console.log("QR detected:", decodedText, "requested:", qrScanRequested);
+        if (!qrScanRequested) return;
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        document.getElementById("qrReader").classList.remove("scanning");
+        onQrSuccess(decodedText);
+      }
+
+      function onQrSuccess(decodedText) {
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         completeShare(decodedText);
       }
 
       function triggerQrScan() {
-        if (!quaggaStarted) return;
+        if (!qrScanner) return;
         qrScanRequested = true;
         updateQrScanButton(true);
-        document.getElementById("reader").classList.add("scanning");
+        document.getElementById("qrReader").classList.add("scanning");
 
         clearQrScanTimer();
         qrScanTimer = setTimeout(() => {
           if (!qrScanRequested) return;
           qrScanRequested = false;
           updateQrScanButton(false);
-          document.getElementById("reader").classList.remove("scanning");
+          document.getElementById("qrReader").classList.remove("scanning");
         }, 6000);
       }
 
@@ -830,7 +860,9 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        const qrReader = document.getElementById("qrReader");
+        if (qrReader) qrReader.classList.remove("scanning");
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         pendingShareBlob = null;
         pendingShareFile = null;
@@ -840,9 +872,20 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("reader").classList.remove("scanning");
+        const qrReader = document.getElementById("qrReader");
+        if (qrReader) qrReader.classList.remove("scanning");
+        stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
+      }
+
+      async function stopQrScanner() {
+        if (qrScanner) {
+          try {
+            await qrScanner.stop();
+          } catch (e) {}
+          qrScanner = null;
+        }
       }
 
       async function completeShare(messageText) {
