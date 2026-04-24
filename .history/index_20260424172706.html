@@ -482,7 +482,7 @@
       <button class="mode-btn" onclick="startMode('serialOnly')">
         Only Serial Number
       </button>
-      <div id="versionCounter">v2</div>
+      <div id="versionCounter">v1.2</div>
     </div>
 
     <div id="scannerScreen" class="screen">
@@ -871,11 +871,9 @@
         let html =
           "<table><tr><th>Number</th><th>Plot Information</th><th>Serial Number</th></tr>";
 
-        entries.forEach((e, index) => {
+        entries.forEach((e) => {
           const plot = e.plot ? e.plot : '<span class="empty-plot">—</span>';
-          const plotClick = e.plot ? `onclick="openRescanModal(${index}, 'plot')"` : '';
-          const serialClick = `onclick="openRescanModal(${index}, 'serial')"`;
-          html += `<tr><td>${e.num}</td><td ${plotClick}>${plot}</td><td ${serialClick}>${e.serial}</td></tr>`;
+          html += `<tr><td>${e.num}</td><td>${plot}</td><td>${e.serial}</td></tr>`;
         });
 
         html += "</table>";
@@ -1132,120 +1130,6 @@
         alert("Web Share not supported. Use Download CSV instead.");
         pendingShareBlob = null;
         pendingShareFile = null;
-      }
-
-      function openRescanModal(index, field) {
-        rescanEntryIndex = index;
-        rescanField = field;
-        rescanScanRequested = false;
-
-        const entry = entries[index];
-        const targetText = field === 'plot' ? entry.plot : entry.serial;
-        document.getElementById("rescanTarget").textContent = targetText;
-        document.getElementById("rescanModal").classList.add("active");
-        updateRescanButton(false);
-      }
-
-      async function triggerRescan() {
-        const rescanReader = document.getElementById("rescanReader");
-        rescanReader.innerHTML = "";
-
-        try {
-          await initQuagga(rescanReader, { facingMode: "environment" });
-          Quagga.offDetected(handleRescanDetected);
-          Quagga.onDetected(handleRescanDetected);
-          Quagga.start();
-
-          const video = rescanReader.querySelector("video");
-          if (video) {
-            video.setAttribute("playsinline", "true");
-            video.setAttribute("webkit-playsinline", "true");
-            video.setAttribute("autoplay", "true");
-            video.muted = true;
-            video.play().catch(() => {});
-          }
-
-          rescanScanRequested = true;
-          updateRescanButton(true);
-          rescanReader.classList.add("scanning");
-
-          clearRescanTimer();
-          rescanTimer = setTimeout(() => {
-            if (!rescanScanRequested) return;
-            rescanScanRequested = false;
-            updateRescanButton(false);
-            rescanReader.classList.remove("scanning");
-            rescanReader.classList.add("fail");
-            setTimeout(() => rescanReader.classList.remove("fail"), 800);
-          }, 4000);
-        } catch (e) {
-          console.error("Rescan camera failed:", e);
-          alert("Could not start camera for rescan.");
-        }
-      }
-
-      function handleRescanDetected(result) {
-        if (!rescanScanRequested) return;
-
-        const text = result && result.codeResult ? result.codeResult.code : "";
-        if (!text) return;
-
-        rescanScanRequested = false;
-        clearRescanTimer();
-        updateRescanButton(false);
-
-        const rescanReader = document.getElementById("rescanReader");
-        rescanReader.classList.remove("scanning");
-        rescanReader.classList.add("success");
-
-        setTimeout(() => {
-          rescanReader.classList.remove("success");
-          stopRescanScanner();
-          updateEntry(text);
-          document.getElementById("rescanModal").classList.remove("active");
-          showResults();
-        }, 600);
-      }
-
-      function updateEntry(newText) {
-        if (rescanEntryIndex === null || rescanField === null) return;
-
-        entries[rescanEntryIndex][rescanField] = newText;
-        rescanEntryIndex = null;
-        rescanField = null;
-      }
-
-      function updateRescanButton(scanning) {
-        const btn = document.getElementById("scanRescanBtn");
-        if (!btn) return;
-        btn.disabled = scanning;
-        btn.textContent = scanning ? "Scanning..." : "Scan";
-      }
-
-      function clearRescanTimer() {
-        if (!rescanTimer) return;
-        clearTimeout(rescanTimer);
-        rescanTimer = null;
-      }
-
-      function cancelRescan() {
-        rescanScanRequested = false;
-        clearRescanTimer();
-        updateRescanButton(false);
-        stopRescanScanner();
-        document.getElementById("rescanModal").classList.remove("active");
-        rescanEntryIndex = null;
-        rescanField = null;
-      }
-
-      function stopRescanScanner() {
-        if (window.Quagga) {
-          try {
-            Quagga.stop();
-          } catch (e) {}
-        }
-        const rescanReader = document.getElementById("rescanReader");
-        if (rescanReader) rescanReader.innerHTML = "";
       }
 
       function restart() {
