@@ -304,19 +304,6 @@
         border-radius: 16px;
         overflow: hidden;
         background: #000;
-        border: 4px solid #d1d1d6;
-      }
-
-      #qrCamera.scanning {
-        border: 4px solid #007aff;
-      }
-
-      #qrCamera.success {
-        border: 4px solid #34c759;
-      }
-
-      #qrCamera.fail {
-        border: 4px solid #ff3b30;
       }
 
       #qrModal .qr-actions {
@@ -804,61 +791,10 @@
 
         document.getElementById("qrModal").classList.add("active");
         updateQrScanButton(false);
-        setQrBorder(null);
 
-        stopCamera();
-        await new Promise((r) => setTimeout(r, 200));
-
-        const qrCamera = document.getElementById("qrCamera");
-        qrCamera.innerHTML = "";
-
-        const preferredConstraint = await getRearCameraConstraint();
-        const constraintsToTry = [
-          preferredConstraint,
-          { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-          { facingMode: "environment" },
-          true,
-        ];
-
-        let started = false;
-        for (const constraint of constraintsToTry) {
-          try {
-            await initQuagga(qrCamera, constraint);
-            started = true;
-            break;
-          } catch (e) {
-            try { Quagga.stop(); } catch {}
-            qrCamera.innerHTML = "";
-          }
+        if (!quaggaStarted) {
+          await startCamera();
         }
-
-        if (!started) {
-          alert("Could not start camera for QR scan. Sharing without message.");
-          skipQrScan();
-          return;
-        }
-
-        Quagga.offDetected(handleQuaggaDetected);
-        Quagga.onDetected(handleQuaggaDetected);
-        Quagga.start();
-        quaggaStarted = true;
-
-        const video = qrCamera.querySelector("video");
-        if (video) {
-          video.setAttribute("playsinline", "true");
-          video.setAttribute("webkit-playsinline", "true");
-          video.setAttribute("autoplay", "true");
-          video.muted = true;
-          video.play().catch(() => {});
-        }
-      }
-
-      function setQrBorder(state) {
-        const cam = document.getElementById("qrCamera");
-        if (!cam) return;
-        cam.classList.remove("scanning", "success", "fail");
-        if (state) cam.classList.add(state);
       }
 
       function updateQrScanButton(scanning) {
@@ -873,16 +809,16 @@
         qrScanRequested = true;
         shareQrMode = true;
         updateQrScanButton(true);
-        setQrBorder("scanning");
+        setReaderBorder("scanning");
 
         clearScanRequestTimer();
         scanRequestTimer = setTimeout(() => {
           if (!qrScanRequested) return;
           qrScanRequested = false;
-          shareQrMode = true;
+          shareQrMode = false;
           updateQrScanButton(false);
-          setQrBorder("fail");
-          setTimeout(() => setQrBorder(null), 800);
+          setReaderBorder("fail");
+          setTimeout(() => setReaderBorder(null), 800);
         }, 4000);
       }
 
@@ -891,15 +827,11 @@
         shareQrMode = false;
         updateQrScanButton(false);
         clearScanRequestTimer();
-        setQrBorder("success");
+        setReaderBorder("success");
+        setTimeout(() => setReaderBorder(null), 600);
 
-        stopCamera();
         document.getElementById("qrModal").classList.remove("active");
-
-        setTimeout(() => {
-          setQrBorder(null);
-          completeShare(decodedText);
-        }, 600);
+        completeShare(decodedText);
       }
 
       function cancelQrScan() {
@@ -907,8 +839,6 @@
         shareQrMode = false;
         clearScanRequestTimer();
         updateQrScanButton(false);
-        stopCamera();
-        document.getElementById("qrCamera").innerHTML = "";
         document.getElementById("qrModal").classList.remove("active");
       }
 
@@ -917,8 +847,6 @@
         shareQrMode = false;
         clearScanRequestTimer();
         updateQrScanButton(false);
-        stopCamera();
-        document.getElementById("qrCamera").innerHTML = "";
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
       }
