@@ -644,11 +644,6 @@
       }
 
       function handleQuaggaDetected(result) {
-        if (rescanScanRequested) {
-          handleRescanDetected(result);
-          return;
-        }
-
         if (!scanRequested) return;
 
         const text = result && result.codeResult ? result.codeResult.code : "";
@@ -667,12 +662,7 @@
 
       function beginScanAttempt(isRetry = false) {
         if (!quaggaStarted) return;
-
-        if (rescanEntryIndex !== null) {
-          rescanScanRequested = true;
-        } else {
-          scanRequested = true;
-        }
+        scanRequested = true;
 
         const btn = document.getElementById("scanBtn");
         if (btn) {
@@ -685,8 +675,7 @@
 
         clearScanRequestTimer();
         scanRequestTimer = setTimeout(() => {
-          if (!scanRequested && !rescanScanRequested) return;
-          if (!quaggaStarted) return;
+          if (!scanRequested || !quaggaStarted) return;
 
           reader.classList.remove("scanning");
           reader.classList.add("fail");
@@ -697,8 +686,7 @@
       }
 
       function triggerScan() {
-        if (!quaggaStarted) return;
-        if (scanRequested || rescanScanRequested) return;
+        if (!quaggaStarted || scanRequested) return;
         beginScanAttempt(false);
       }
 
@@ -773,20 +761,7 @@
       }
 
       function finishScanning() {
-        if (rescanEntryIndex !== null) {
-          cancelRescan();
-          return;
-        }
         stopCamera();
-        showResults();
-      }
-
-      function cancelRescan() {
-        rescanScanRequested = false;
-        clearScanRequestTimer();
-        stopCamera();
-        rescanEntryIndex = null;
-        rescanField = null;
         showResults();
       }
 

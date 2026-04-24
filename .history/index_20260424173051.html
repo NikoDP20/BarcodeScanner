@@ -773,20 +773,7 @@
       }
 
       function finishScanning() {
-        if (rescanEntryIndex !== null) {
-          cancelRescan();
-          return;
-        }
         stopCamera();
-        showResults();
-      }
-
-      function cancelRescan() {
-        rescanScanRequested = false;
-        clearScanRequestTimer();
-        stopCamera();
-        rescanEntryIndex = null;
-        rescanField = null;
         showResults();
       }
 
