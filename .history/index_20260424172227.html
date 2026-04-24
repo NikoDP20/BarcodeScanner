@@ -106,38 +106,13 @@
         overflow: hidden;
       }
 
-      #reader video {
-        display: block;
+      #reader video,
+      #reader canvas {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
-      }
-
-      #reader.scanning::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 4px solid #007aff;
-        border-radius: 16px;
-        pointer-events: none;
-      }
-
-      #reader.success::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 4px solid #34c759;
-        border-radius: 16px;
-        pointer-events: none;
-      }
-
-      #reader.fail::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 4px solid #ff3b30;
-        border-radius: 16px;
-        pointer-events: none;
       }
 
       #reader canvas {
@@ -634,11 +609,6 @@
         scanRequested = false;
         clearScanRequestTimer();
         resetScanButton(false);
-
-        const reader = document.getElementById("reader");
-        reader.classList.add("success");
-        setTimeout(() => reader.classList.remove("success"), 1000);
-
         onScanSuccess(text);
       }
 
@@ -652,17 +622,9 @@
           btn.textContent = isRetry ? "Retrying..." : "Scanning...";
         }
 
-        const reader = document.getElementById("reader");
-        reader.classList.add("scanning");
-
         clearScanRequestTimer();
         scanRequestTimer = setTimeout(() => {
           if (!scanRequested || !quaggaStarted) return;
-
-          reader.classList.remove("scanning");
-          reader.classList.add("fail");
-          setTimeout(() => reader.classList.remove("fail"), 800);
-
           beginScanAttempt(true);
         }, MANUAL_SCAN_TIMEOUT_MS);
       }
