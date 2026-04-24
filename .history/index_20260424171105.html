@@ -853,9 +853,7 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
-        stopQrScanner();
+        document.getElementById("reader").classList.remove("scanning");
         document.getElementById("qrModal").classList.remove("active");
         pendingShareBlob = null;
         pendingShareFile = null;
@@ -865,20 +863,9 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
-        stopQrScanner();
+        document.getElementById("reader").classList.remove("scanning");
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
-      }
-
-      async function stopQrScanner() {
-        if (qrScanner) {
-          try {
-            await qrScanner.stop();
-          } catch (e) {}
-          qrScanner = null;
-        }
       }
 
       async function completeShare(messageText) {

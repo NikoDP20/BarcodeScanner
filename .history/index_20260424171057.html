@@ -781,58 +781,32 @@
         document.getElementById("qrModal").classList.add("active");
         updateQrScanButton(false);
 
-        const qrReader = document.getElementById("qrReader");
-        qrReader.innerHTML = "";
-
-        if (!window.Html5Qrcode) {
-          skipQrScan();
-          return;
+        if (!quaggaStarted) {
+          await startCamera();
         }
-
-        qrScanner = new Html5Qrcode("qrReader");
-
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-        try {
-          await qrScanner.start(
-            { facingMode: "environment" },
-            config,
-            onQrDetected,
-            () => {}
-          );
-        } catch (e) {
-          console.error("QR start failed:", e);
-          skipQrScan();
-        }
-      }
-
-      function onQrDetected(decodedText) {
-        if (!qrScanRequested) return;
-        qrScanRequested = false;
-        clearQrScanTimer();
-        updateQrScanButton(false);
-        document.getElementById("qrReader").classList.remove("scanning");
-        onQrSuccess(decodedText);
       }
 
       function onQrSuccess(decodedText) {
-        stopQrScanner();
+        qrScanRequested = false;
+        clearQrScanTimer();
+        updateQrScanButton(false);
+        document.getElementById("reader").classList.remove("scanning");
         document.getElementById("qrModal").classList.remove("active");
         completeShare(decodedText);
       }
 
       function triggerQrScan() {
-        if (!qrScanner) return;
+        if (!quaggaStarted) return;
         qrScanRequested = true;
         updateQrScanButton(true);
-        document.getElementById("qrReader").classList.add("scanning");
+        document.getElementById("reader").classList.add("scanning");
 
         clearQrScanTimer();
         qrScanTimer = setTimeout(() => {
           if (!qrScanRequested) return;
           qrScanRequested = false;
           updateQrScanButton(false);
-          document.getElementById("qrReader").classList.remove("scanning");
+          document.getElementById("reader").classList.remove("scanning");
         }, 6000);
       }
 
@@ -853,9 +827,7 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
-        stopQrScanner();
+        document.getElementById("reader").classList.remove("scanning");
         document.getElementById("qrModal").classList.remove("active");
         pendingShareBlob = null;
         pendingShareFile = null;
@@ -865,20 +837,9 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
-        stopQrScanner();
+        document.getElementById("reader").classList.remove("scanning");
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
-      }
-
-      async function stopQrScanner() {
-        if (qrScanner) {
-          try {
-            await qrScanner.stop();
-          } catch (e) {}
-          qrScanner = null;
-        }
       }
 
       async function completeShare(messageText) {
