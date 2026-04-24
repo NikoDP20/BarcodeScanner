@@ -909,23 +909,11 @@
       }
 
       async function stopQrScanner() {
-        if (qrAnimationId) {
-          cancelAnimationFrame(qrAnimationId);
-          qrAnimationId = null;
-        }
-
-        if (qrStream) {
-          qrStream.getTracks().forEach(track => track.stop());
-          qrStream = null;
-        }
-
-        if (qrVideo) {
-          qrVideo.srcObject = null;
-          qrVideo = null;
-        }
-
-        if (qrCanvas) {
-          qrCanvas = null;
+        if (qrScanner) {
+          try {
+            await qrScanner.reset();
+          } catch (e) {}
+          qrScanner = null;
         }
       }
 

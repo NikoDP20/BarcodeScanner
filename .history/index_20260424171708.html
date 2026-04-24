@@ -404,10 +404,7 @@
       let lastScanTime = 0;
       let scanRequested = false;
       let scanRequestTimer = null;
-      let qrVideo = null;
-      let qrCanvas = null;
-      let qrStream = null;
-      let qrAnimationId = null;
+      let qrScanner = null;
       let pendingShareBlob = null;
       let pendingShareFile = null;
       let qrScanRequested = false;
@@ -787,59 +784,36 @@
         const qrReader = document.getElementById("qrReader");
         qrReader.innerHTML = "";
 
-        if (!window.jsQR) {
+        if (!window.ZXing) {
           skipQrScan();
           return;
         }
 
         try {
-          qrVideo = document.createElement("video");
-          qrVideo.setAttribute("playsinline", "true");
-          qrVideo.setAttribute("webkit-playsinline", "true");
-          qrVideo.setAttribute("autoplay", "true");
-          qrVideo.muted = true;
-          qrVideo.style.width = "100%";
-          qrVideo.style.height = "100%";
-          qrVideo.style.objectFit = "cover";
-          qrReader.appendChild(qrVideo);
+          const video = document.createElement("video");
+          video.setAttribute("playsinline", "true");
+          video.setAttribute("webkit-playsinline", "true");
+          video.setAttribute("autoplay", "true");
+          video.muted = true;
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          qrReader.appendChild(video);
 
-          qrCanvas = document.createElement("canvas");
-          qrCanvas.style.display = "none";
-          qrReader.appendChild(qrCanvas);
-
-          qrStream = await navigator.mediaDevices.getUserMedia({
-            facingMode: "environment",
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-          });
-          qrVideo.srcObject = qrStream;
-          await qrVideo.play();
-
-          requestAnimationFrame(tickQr);
+          qrScanner = new ZXing.BrowserQRCodeReader();
+          await qrScanner.decodeFromVideoDevice(
+            { facingMode: "environment" },
+            video,
+            (result, error) => {
+              if (result) {
+                onQrDetected(result.text);
+              }
+            }
+          );
         } catch (e) {
           console.error("QR start failed:", e);
           skipQrScan();
         }
-      }
-
-      function tickQr() {
-        if (!qrVideo || !qrCanvas || !qrStream) return;
-
-        if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
-          qrCanvas.height = qrVideo.videoHeight;
-          qrCanvas.width = qrVideo.videoWidth;
-          const ctx = qrCanvas.getContext("2d");
-          ctx.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
-          const imageData = ctx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-          });
-
-          if (code && qrScanRequested) {
-            onQrDetected(code.data);
-          }
-        }
-
-        qrAnimationId = requestAnimationFrame(tickQr);
       }
 
       function onQrDetected(decodedText) {
@@ -858,7 +832,7 @@
       }
 
       function triggerQrScan() {
-        if (!qrVideo) return;
+        if (!qrScanner) return;
         qrScanRequested = true;
         updateQrScanButton(true);
         document.getElementById("qrReader").classList.add("scanning");
@@ -909,23 +883,11 @@
       }
 
       async function stopQrScanner() {
-        if (qrAnimationId) {
-          cancelAnimationFrame(qrAnimationId);
-          qrAnimationId = null;
-        }
-
-        if (qrStream) {
-          qrStream.getTracks().forEach(track => track.stop());
-          qrStream = null;
-        }
-
-        if (qrVideo) {
-          qrVideo.srcObject = null;
-          qrVideo = null;
-        }
-
-        if (qrCanvas) {
-          qrCanvas = null;
+        if (qrScanner) {
+          try {
+            await qrScanner.reset();
+          } catch (e) {}
+          qrScanner = null;
         }
       }
 
