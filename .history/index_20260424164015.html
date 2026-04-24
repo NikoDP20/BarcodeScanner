@@ -329,19 +329,6 @@
         cursor: default;
       }
 
-      #qrReader {
-        position: relative;
-      }
-
-      #qrReader.scanning::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border: 4px solid #007aff;
-        border-radius: 16px;
-        pointer-events: none;
-      }
-
       #qrModal .qr-actions {
         margin-top: 16px;
         display: flex;
@@ -819,7 +806,6 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        document.getElementById("qrReader").classList.remove("scanning");
         onQrSuccess(decodedText);
       }
 
@@ -833,15 +819,13 @@
         if (!qrScanner) return;
         qrScanRequested = true;
         updateQrScanButton(true);
-        document.getElementById("qrReader").classList.add("scanning");
 
         clearQrScanTimer();
         qrScanTimer = setTimeout(() => {
           if (!qrScanRequested) return;
           qrScanRequested = false;
           updateQrScanButton(false);
-          document.getElementById("qrReader").classList.remove("scanning");
-        }, 6000);
+        }, 4000);
       }
 
       function updateQrScanButton(scanning) {
@@ -861,8 +845,6 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
         stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         pendingShareBlob = null;
@@ -873,8 +855,6 @@
         qrScanRequested = false;
         clearQrScanTimer();
         updateQrScanButton(false);
-        const qrReader = document.getElementById("qrReader");
-        if (qrReader) qrReader.classList.remove("scanning");
         stopQrScanner();
         document.getElementById("qrModal").classList.remove("active");
         completeShare("");
