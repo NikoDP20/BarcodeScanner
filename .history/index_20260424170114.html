@@ -789,7 +789,7 @@
 
         qrScanner = new Html5Qrcode("qrReader");
 
-        const config = { fps: 10 };
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
         try {
           await qrScanner.start(
