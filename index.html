@@ -85,22 +85,51 @@
 
       #scannerTopBar {
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
         width: 100%;
-        padding: 0 16px;
+        padding: 16px;
+        gap: 12px;
       }
 
-      #scanStatusLeft {
+      #scanInstruction {
         color: #1c1c1e;
-        font-size: 18px;
-        font-weight: 600;
-      }
-
-      #scanStatusRight {
-        color: #1c1c1e;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 700;
+        text-align: center;
+      }
+
+      #lastScanTable {
+        width: 100%;
+        max-width: 400px;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      #lastScanTable th,
+      #lastScanTable td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e5ea;
+      }
+
+      #lastScanTable th {
+        background: #007aff;
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      #lastScanTable td {
+        color: #1c1c1e;
+      }
+
+      #lastScanTable tr:last-child td {
+        border-bottom: none;
       }
 
       #reader {
@@ -410,8 +439,8 @@
 
     <div id="scannerScreen" class="screen">
       <div id="scannerTopBar">
-        <span id="scanStatusLeft"></span>
-        <span id="scanStatusRight">Scan Plot</span>
+        <div id="scanInstruction">Scan Plot</div>
+        <table id="lastScanTable"></table>
       </div>
       <div id="reader"></div>
       <div class="scanner-actions">
@@ -475,19 +504,57 @@
       }
 
       function updateScanStatus() {
-        const leftEl = document.getElementById("scanStatusLeft");
-        const rightEl = document.getElementById("scanStatusRight");
+        const instructionEl = document.getElementById("scanInstruction");
+        const tableEl = document.getElementById("lastScanTable");
 
         if (mode === "serialOnly") {
-          leftEl.textContent = entries.length > 0 ? `Scanned: ${entries.length}` : "";
-          rightEl.textContent = entries.length > 0 ? `Last SN: ${entries[entries.length - 1].serial}` : "Scan SN";
+          instructionEl.textContent = "Scan SN";
+          if (entries.length > 0) {
+            const last = entries[entries.length - 1];
+            tableEl.innerHTML = `
+              <thead>
+                <tr>
+                  <th>Num</th>
+                  <th>Serial</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${last.num}</td>
+                  <td>${last.serial}</td>
+                </tr>
+              </tbody>
+            `;
+          } else {
+            tableEl.innerHTML = "";
+          }
         } else if (mode === "plotSerial") {
           if (scanStep === "plot") {
-            leftEl.textContent = "";
-            rightEl.textContent = "Scan Plot";
+            instructionEl.textContent = "Scan Plot";
+            tableEl.innerHTML = "";
           } else {
-            leftEl.textContent = tempPlot ? `Plot: ${tempPlot}` : "";
-            rightEl.textContent = "Scan SN";
+            instructionEl.textContent = "Scan SN";
+            if (entries.length > 0) {
+              const last = entries[entries.length - 1];
+              tableEl.innerHTML = `
+                <thead>
+                  <tr>
+                    <th>Num</th>
+                    <th>Plot</th>
+                    <th>Serial</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${last.num}</td>
+                    <td>${last.plot}</td>
+                    <td>${last.serial}</td>
+                  </tr>
+                </tbody>
+              `;
+            } else {
+              tableEl.innerHTML = "";
+            }
           }
         }
       }
