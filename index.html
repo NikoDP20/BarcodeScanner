@@ -434,6 +434,9 @@
       <button class="mode-btn" onclick="startMode('serialOnly')">
         Only Serial Number
       </button>
+      <button class="mode-btn" onclick="shareQrMessage()">
+        Share QR Message
+      </button>
       <div id="versionCounter">v2</div>
     </div>
 
@@ -531,7 +534,27 @@
         } else if (mode === "plotSerial") {
           if (scanStep === "plot") {
             instructionEl.textContent = "Scan Plot";
-            tableEl.innerHTML = "";
+            if (entries.length > 0) {
+              const last = entries[entries.length - 1];
+              tableEl.innerHTML = `
+                <thead>
+                  <tr>
+                    <th>Num</th>
+                    <th>Plot</th>
+                    <th>Serial</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${last.num}</td>
+                    <td>${last.plot}</td>
+                    <td>${last.serial}</td>
+                  </tr>
+                </tbody>
+              `;
+            } else {
+              tableEl.innerHTML = "";
+            }
           } else {
             instructionEl.textContent = "Scan SN";
             if (entries.length > 0) {
@@ -997,6 +1020,54 @@
         }
       }
 
+      async function shareQrMessage() {
+        pendingShareBlob = null;
+        pendingShareFile = null;
+
+        qrScanRequested = false;
+        document.getElementById("qrModal").classList.add("active");
+        updateQrScanButton(false);
+
+        const qrReader = document.getElementById("qrReader");
+        qrReader.innerHTML = "";
+
+        if (!window.jsQR) {
+          skipQrScan();
+          return;
+        }
+
+        try {
+          qrVideo = document.createElement("video");
+          qrVideo.setAttribute("playsinline", "true");
+          qrVideo.setAttribute("webkit-playsinline", "true");
+          qrVideo.setAttribute("autoplay", "true");
+          qrVideo.muted = true;
+          qrVideo.style.width = "100%";
+          qrVideo.style.height = "100%";
+          qrVideo.style.objectFit = "cover";
+          qrReader.appendChild(qrVideo);
+
+          qrCanvas = document.createElement("canvas");
+          qrCanvas.style.display = "none";
+          qrReader.appendChild(qrCanvas);
+
+          qrStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+          qrVideo.srcObject = qrStream;
+          await qrVideo.play();
+
+          requestAnimationFrame(tickQr);
+        } catch (e) {
+          console.error("QR start failed:", e);
+          skipQrScan();
+        }
+      }
+
       function tickQr() {
         if (!qrVideo || !qrCanvas || !qrStream) return;
 
@@ -1106,7 +1177,37 @@
       }
 
       async function completeShare(messageText) {
-        if (!pendingShareFile) return;
+        if (!pendingShareFile) {
+          // Share only the QR message
+          if (navigator.canShare && navigator.canShare({ text: messageText })) {
+            try {
+              await navigator.share({
+                title: "QR Message",
+                text: messageText,
+              });
+              return;
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          // Fallback: create a text file with the message
+          const textBlob = new Blob([messageText], { type: "text/plain" });
+          const textFile = new File([textBlob], "qr_message.txt", { type: "text/plain" });
+          if (navigator.canShare && navigator.canShare({ files: [textFile] })) {
+            try {
+              await navigator.share({
+                files: [textFile],
+                title: "QR Message",
+              });
+              return;
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          // Last fallback: alert
+          alert("QR Message: " + messageText);
+          return;
+        }
 
         const file = pendingShareFile;
         const msg = messageText || undefined;
