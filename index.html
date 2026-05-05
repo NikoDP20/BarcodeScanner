@@ -85,12 +85,19 @@
 
       #scannerTopBar {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         width: 100%;
+        padding: 0 16px;
       }
 
-      #scanStatus {
+      #scanStatusLeft {
+        color: #1c1c1e;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      #scanStatusRight {
         color: #1c1c1e;
         font-size: 24px;
         font-weight: 700;
@@ -403,7 +410,8 @@
 
     <div id="scannerScreen" class="screen">
       <div id="scannerTopBar">
-        <span id="scanStatus">Scan Plot</span>
+        <span id="scanStatusLeft"></span>
+        <span id="scanStatusRight">Scan Plot</span>
       </div>
       <div id="reader"></div>
       <div class="scanner-actions">
@@ -467,8 +475,21 @@
       }
 
       function updateScanStatus() {
-        document.getElementById("scanStatus").textContent =
-          scanStep === "plot" ? "Scan Plot" : "Scan SN";
+        const leftEl = document.getElementById("scanStatusLeft");
+        const rightEl = document.getElementById("scanStatusRight");
+
+        if (mode === "serialOnly") {
+          leftEl.textContent = entries.length > 0 ? `Scanned: ${entries.length}` : "";
+          rightEl.textContent = entries.length > 0 ? `Last SN: ${entries[entries.length - 1].serial}` : "Scan SN";
+        } else if (mode === "plotSerial") {
+          if (scanStep === "plot") {
+            leftEl.textContent = "";
+            rightEl.textContent = "Scan Plot";
+          } else {
+            leftEl.textContent = tempPlot ? `Plot: ${tempPlot}` : "";
+            rightEl.textContent = "Scan SN";
+          }
+        }
       }
 
       function clearScanRequestTimer() {
@@ -735,6 +756,8 @@
           plot: "",
           serial: text,
         });
+
+        updateScanStatus();
       }
 
       function showFeedback() {
